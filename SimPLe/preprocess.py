@@ -39,10 +39,16 @@ def f_img(tr_img_path):
     print(tr_img_path, size, new_size, spacing, target_spacing)
 
 def f_seg(tr_seg_path):
+    # Read the NRRD file and convert it to NIfTI
+    nrrd_seg = sitk.ReadImage(tr_seg_path)
+    nifti_seg_path = tr_seg_path.replace('.nrrd', '.nii.gz')
+    sitk.WriteImage(nrrd_seg, nifti_seg_path)
+
+    # Continue with the existing preprocessing steps
     # reorient to ras
-    tr_seg = nib.load(tr_seg_path)
+    tr_seg = nib.load(nifti_seg_path)
     ras_seg = tr_seg.as_reoriented(io_orientation(tr_seg.affine))
-    ras_seg_path = tr_seg_path.replace('noisy_label', 'noisy_label_resample_1.0X0.6X0.6').replace('.nii.gz', '_reorientation.nii.gz')
+    ras_seg_path = nifti_seg_path.replace('.nii.gz', '_reorientation.nii.gz')
     nib.save(ras_seg, ras_seg_path)
 
     tr_seg = sitk.ReadImage(ras_seg_path)
@@ -55,7 +61,7 @@ def f_seg(tr_seg_path):
     seg_zoom = transform.resize(tr_seg_array.astype(float), new_size, 0, mode="edge", clip=True,
                                 anti_aliasing=False).astype(np.uint8)
 
-    np.savez_compressed(tr_seg_path.replace('noisy_label', 'noisy_label_resample_1.0X0.6X0.6').replace('.nii.gz', '.npz'),
+    np.savez_compressed(nifti_seg_path.replace('.nii.gz', '.npz'),
                         seg=seg_zoom)
     os.remove(ras_seg_path)
     print(tr_seg_path, size, new_size, spacing, target_spacing)
